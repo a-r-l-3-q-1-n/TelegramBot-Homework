@@ -39,3 +39,6 @@ class Logger:
 
     def log_info(self, message):
         self.logger.info(message)
+
+
+logger = Logger()

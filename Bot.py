@@ -2,30 +2,32 @@ import asyncio
 
 from aiogram import Bot, Dispatcher
 
-from Database.Data import Database
+from Database.Data import database
+from Handlers import Start, Support
 from Settings.Config import BOT_TOKEN
+from Utils.Logger import logger
 
 
 async def main():
     bot = Bot(token=BOT_TOKEN,
               parse_mode="HTML")
     dp = Dispatcher()
-    db = Database()
 
-    dp.startup.register(db.init_all)
+    dp.startup.register(database.init_all)
 
-    dp.include_routers(
-        ...
+    dp.include_router(
+        Start.router,
+        # Support.router
     )
 
     await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot, db=db)
+    await dp.start_polling(bot, db=database)
 
 
 if __name__ == "__main__":
     try:
-        print(f"[INFO] -> Bot started successfully")
+        logger.log_info(f"[INFO] -> Bot started successfully")
 
         asyncio.run(main())
     except KeyboardInterrupt:
-        print(f"[INFO] -> Bot stopped via KeyboardInterrupt")
+        logger.log_info(f"[INFO] -> Bot stopped via KeyboardInterrupt\n")
