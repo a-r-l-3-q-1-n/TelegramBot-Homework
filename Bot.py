@@ -15,9 +15,9 @@ async def main():
 
     dp.startup.register(database.init_all)
 
-    dp.include_router(
+    dp.include_routers(
         Start.router,
-        # Support.router
+        Support.router
     )
 
     await bot.delete_webhook(drop_pending_updates=True)

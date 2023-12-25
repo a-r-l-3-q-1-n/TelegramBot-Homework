@@ -157,8 +157,12 @@ class Database:
                     select(getattr(User, field)).where(User.telegram_id == telegram_id).limit(1)
                 )
 
-                if query.scalar():
+                query = query.scalars().first()
+                if query is not None:
                     return query
+
+        #         TODO: FIX BUG
+
 
         except SQLAlchemyError as exception:
             logger.log_error(f"[FAIL] -> while getting user : {exception}")

@@ -47,5 +47,5 @@ async def set_name(message: Message, state: FSMContext):
 
     except Exception:
         await message.answer(text="An error occurred during registration.\n"
-                                  "Please, try again.  🚫🔄",
+                                  "Please, try again. 🔄",
                              reply_markup=await builder(message.from_user.full_name))
