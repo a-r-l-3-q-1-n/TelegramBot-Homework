@@ -158,11 +158,8 @@ class Database:
                 )
 
                 query = query.scalars().first()
-                if query is not None:
+                if query:
                     return query
-
-        #         TODO: FIX BUG
-
 
         except SQLAlchemyError as exception:
             logger.log_error(f"[FAIL] -> while getting user : {exception}")

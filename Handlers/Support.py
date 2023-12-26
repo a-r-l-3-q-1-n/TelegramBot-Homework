@@ -28,9 +28,12 @@ async def send_message(message: Message, state: FSMContext):
                                  reply_markup=menu_kb)
 
         else:
-            name = await database.get_user(telegram_id=message.from_user.id, field="username")
-            print(name)
-            await message.bot.send_message(chat_id=SUPPORT_CHAT_ID, text=f"User {name} sent you a message:\n"
+            username = str(await database.get_user(telegram_id=message.from_user.id, field="username"))
+
+            print(username)
+            print(message.text)
+
+            await message.bot.send_message(chat_id=SUPPORT_CHAT_ID, text=f"User {username} sent you a message:\n"
                                                                          f"{message.text}")
             await message.answer(text="Your message has been successfully sent to the administrator!",
                                  reply_markup=menu_kb)
