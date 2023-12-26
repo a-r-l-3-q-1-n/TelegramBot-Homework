@@ -9,7 +9,7 @@ continue_kb = ReplyKeyboardMarkup(
 
 menu_kb = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="Homework 📚📝")],
+        [KeyboardButton(text="Manage homework 📚📝")],
         [KeyboardButton(text="Settings ⚙️🔧")]],
     resize_keyboard=True,
     input_field_placeholder="Choose an action ➡️")
@@ -25,7 +25,7 @@ homework_kb = ReplyKeyboardMarkup(
 settings_kb = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="Support 🛠️"),
-         KeyboardButton(text="Help 🆘"),
+         KeyboardButton(text="Guide 🆘"),
          KeyboardButton(text="Links 🌐")],
         [KeyboardButton(text="To main menu 🔙")]],
     resize_keyboard=True,
