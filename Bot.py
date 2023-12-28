@@ -28,8 +28,6 @@ async def main():
 
 if __name__ == "__main__":
     try:
-        logger.log_info(f"[INFO] -> Bot started successfully")
-
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.log_info(f"[INFO] -> Bot stopped via KeyboardInterrupt\n")
+        print("Bot stopped via KeyboardInterrupt")

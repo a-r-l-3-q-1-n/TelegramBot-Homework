@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from Database.Models import *
 from Database.Schedule import *
 from Utils.Logger import logger
-from Settings.Config import DATABASE_URL
+from Settings.Config import DATABASE_URL, CRON_TRIGGER_DAY_OF_WEEK, CRON_TRIGGER_HOUR, CRON_TRIGGER_MINUTE
 
 
 class Database:
@@ -23,23 +23,33 @@ class Database:
         self.scheduler = AsyncIOScheduler()
         self.scheduler.add_job(
             self.scheduled,
-            trigger=CronTrigger(day_of_week="mon", hour="3", minute="33")
+            trigger=CronTrigger(
+                day_of_week=CRON_TRIGGER_DAY_OF_WEEK,
+                hour=CRON_TRIGGER_HOUR,
+                minute=CRON_TRIGGER_MINUTE)
         )
 
     # --> INIT METHODS
 
     async def init_all(self):
         try:
+            await self.init_metadata()
+            await self.init_days()
+            await self.init_subjects()
+            await self.init_homework()
+
+            logger.log_info(f"{f'Database initialization successfully completed'.ljust(46)} ::")
+        except SQLAlchemyError as exception:
+            logger.log_error(f"{f'Database initialization failed'.ljust(46)} :: {exception}")
+
+    async def init_metadata(self):
+        try:
             async with self.engine.begin() as connection:
                 await connection.run_sync(Base.metadata.create_all)
 
-                await self.init_days()
-                await self.init_subjects()
-                await self.init_homework()
-
-            logger.log_info("[INFO] -> Successfully created tables")
+            logger.log_info(f"{'Metadata initialization completed'.ljust(46)} ::")
         except SQLAlchemyError as exception:
-            logger.log_error(f"[FAIL] -> while creating tables : {exception}")
+            logger.log_error(f"{'Metadata initialization failed'.ljust(46)} :: {exception}")
 
     async def init_days(self):
         try:
@@ -50,9 +60,10 @@ class Database:
                     session.add_all([Day(day=day) for day in days])
                     await session.commit()
 
-            logger.log_info("[INFO] -> Successfully initialized days")
+            logger.log_info(f"{f'DayTable successfully initialized'.ljust(46)} ::")
+
         except SQLAlchemyError as exception:
-            logger.log_error(f"[FAIL] -> while initializing days : {exception}")
+            logger.log_error(f"{f'DayTable initialization failed'.ljust(46)} :: {exception}")
 
     async def init_subjects(self):
         try:
@@ -63,9 +74,10 @@ class Database:
                     session.add_all([Subject(subject=subject) for subject in subjects])
                     await session.commit()
 
-            logger.log_info("[INFO] -> Successfully initialized subjects")
+            logger.log_info(f"{f'SubjectTable successfully initialized'.ljust(46)} ::")
+
         except SQLAlchemyError as exception:
-            logger.log_error(f"[FAIL] -> while initializing subjects : {exception}")
+            logger.log_error(f"{f'SubjectTable initialization failed'.ljust(46)} :: {exception}")
 
     async def init_homework(self):
         try:
@@ -97,9 +109,10 @@ class Database:
                     session.add_all(homeworkweek2_data)
                     await session.commit()
 
-            logger.log_info("[INFO] -> Successfully initialized homework tables")
+            logger.log_info(f"{f'HomeworkWeekTable successfully initialized'.ljust(46)} ::")
+
         except SQLAlchemyError as exception:
-            logger.log_error(f"[FAIL] -> while initializing homework : {exception}")
+            logger.log_error(f"{f'HomeworkWeekTable initialization failed'.ljust(46)} :: {exception}")
 
     # --> USER METHODS
 
@@ -120,7 +133,7 @@ class Database:
                     await session.commit()
 
         except SQLAlchemyError as exception:
-            logger.log_error(f"[FAIL] -> while creating user: {exception}")
+            logger.log_error(f"{f'Failed to add user {telegram_id}'.ljust(46)} :: {exception}")
 
     async def update_user(
             self,
@@ -144,7 +157,7 @@ class Database:
                     await session.commit()
 
         except SQLAlchemyError as exception:
-            logger.log_error(f"[FAIL] -> while updating user : {exception}")
+            logger.log_error(f"{f'Failed to update user {telegram_id}'.ljust(46)} :: {exception}")
 
     async def get_user(
             self,
@@ -156,18 +169,19 @@ class Database:
                 query = await session.execute(
                     select(getattr(User, field)).where(User.telegram_id == telegram_id).limit(1)
                 )
-
                 query = query.scalars().first()
+
                 if query:
                     return query
 
         except SQLAlchemyError as exception:
-            logger.log_error(f"[FAIL] -> while getting user : {exception}")
+            logger.log_error(f"{f'Failed to retrieve user {telegram_id}'.ljust(46)} :: {exception}")
 
     # --> HOMEWORK METHODS
 
     async def add_homework(
             self,
+            telegram_id: int,
             week_id: int,
             day_id: int,
             subject_id: int,
@@ -180,11 +194,13 @@ class Database:
 
                 query = week(day_id=day_id, subject_id=subject_id, assignment=assignment, image=image)
                 session.add(query)
+                await session.commit()
 
+            logger.log_info(f"{f'Homework added successfully ({day_id}.{subject_id}) {telegram_id}'.ljust(46)} ::")
         except SQLAlchemyError as exception:
-            logger.log_error(f"[FAIL] -> while adding homework : {exception}")
+            logger.log_error(f"{f'Failed to add homework {telegram_id}'.ljust(46)} :: {exception}")
 
-    async def get_homework(self) -> list:
+    async def get_homework(self, telegram_id: int) -> list:
         try:
             async with self.async_session as session:
                 query = await session.execute(
@@ -214,10 +230,11 @@ class Database:
                     } for day, subject, assignment, image in query.all()
                 ]
 
+                logger.log_info(f"{f'Homework retrieved successfully'.ljust(46)} ::")
                 return data
 
         except SQLAlchemyError as exception:
-            logger.log_error(f"[FAIL] -> while getting homework : {exception}")
+            logger.log_error(f"{f'Failed to retrieve homework {telegram_id}'.ljust(46)} :: {exception}")
 
     # --> SCHEDULED METHOD
 
@@ -226,40 +243,51 @@ class Database:
             async with self.async_session() as session:
 
                 # Update HomeworkWeek1
+                try:
+                    await session.execute(delete(HomeworkWeek1))
 
-                await session.execute(delete(HomeworkWeek1))
+                    query = (await session.execute(select(HomeworkWeek2))).scalars().all()
 
-                query = (await session.execute(select(HomeworkWeek2))).scalars().all()
+                    entry = [
+                        HomeworkWeek1(
+                            day_id=entry.day_id,
+                            subject_id=entry.subject_id,
+                            assignment=entry.assignment,
+                            image=entry.image
+                        )
+                        for entry in query
+                    ]
+                    session.add_all(entry)
 
-                entry = [
-                    HomeworkWeek1(
-                        day_id=entry.day_id,
-                        subject_id=entry.subject_id,
-                        assignment=entry.assignment,
-                        image=entry.image
-                    )
-                    for entry in query
-                ]
-                session.add_all(entry)
+                    logger.log_info(f"{'HomeworkWeek2 cleaned successfully'.ljust(46)} ::")
+
+                except SQLAlchemyError as exception:
+                    logger.log_error(f"{f'Failed to update HomeworkWeek1'.ljust(46)} :: {exception}")
 
                 # Clean HomeworkWeek2
+                try:
+                    await session.execute(delete(HomeworkWeek2))
 
-                await session.execute(delete(HomeworkWeek2))
+                    entry = [
+                        HomeworkWeek2(
+                            day_id=entry[0],
+                            subject_id=entry[1],
+                            subgroup_id=entry[2],
+                            homework="",
+                            image=""
+                        )
+                        for entry in schedule
+                    ]
+                    session.add_all(entry)
+                    await session.commit()
 
-                entry = [
-                    HomeworkWeek2(
-                        day_id=entry[0],
-                        subject_id=entry[1],
-                        subgroup_id=entry[2],
-                        homework=' - ',
-                        image=' - '
-                    )
-                    for entry in schedule
-                ]
-                session.add_all(entry)
+                    logger.log_info(f"{'HomeworkWeek2 cleaned successfully'.ljust(46)} ::")
+
+                except SQLAlchemyError as exception:
+                    logger.log_error(f"{f'Failed to clean HomeworkWeek2'.ljust(46)} :: {exception}")
 
         except SQLAlchemyError as exception:
-            logger.log_error(f"[FAIL] -> while migrating data from 'week 2' to 'week 1' : {exception}")
+            logger.log_error(f"{f'Failed to execute scheduled task'.ljust(46)} :: {exception}")
 
 
 database = Database()
