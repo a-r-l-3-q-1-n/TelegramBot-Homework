@@ -3,9 +3,8 @@ import asyncio
 from aiogram import Bot, Dispatcher
 
 from Database.Data import database
-from Handlers import Commands, Start, Support
+from Handlers import Commands, Start, Support, UploadHW
 from Settings.Config import BOT_TOKEN
-from Utils.Logger import logger
 
 
 async def main():
@@ -18,8 +17,10 @@ async def main():
     dp.include_routers(
 
         Start.router,
+
+        UploadHW.router,
         Support.router,
-        Commands.router
+        Commands.router,
     )
 
     await bot.delete_webhook(drop_pending_updates=True)

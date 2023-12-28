@@ -1,31 +1,10 @@
 from aiogram import Router, F
 from aiogram.types import Message
 
-from Keyboards.Inline import *
-from Keyboards.Reply import *
-
-
-# =+=+= TEXT =+=+=
-
-
-MENU_TEXT = (
-    "Manage your tasks easily! 📚\n"
-    "Add, view homework with a single click."
+from Handlers.Messages import (
+    MENU_TEXT, GUIDE_TEXT, LINKS_TEXT, ECHO_TEXT, CHS_ACTION_TEXT
 )
-
-
-GUIDE_TEXT = (
-    "..."
-)
-
-LINKS_TEXT = (
-    "Do you want to know more about the projects? 🕵️‍♂️🌟\n"
-    "Visit profiles:\n"
-)
-
-CHOOSE_ACTION_TEXT = "Choose an action 🤔"
-
-ECHO_TEXT = "Sorry, I didn't understand that command. 🤖"
+from Keyboards.InlineReply import *
 
 
 router = Router()
@@ -39,13 +18,13 @@ async def menu(message: Message):
 
 @router.message(F.text.lower().contains("manage homework"))
 async def homework(message: Message):
-    await message.answer(text=CHOOSE_ACTION_TEXT,
+    await message.answer(text=CHS_ACTION_TEXT,
                          reply_markup=homework_kb)
 
 
 @router.message(F.text.lower().contains("settings"))
 async def settings(message: Message):
-    await message.answer(text=CHOOSE_ACTION_TEXT,
+    await message.answer(text=CHS_ACTION_TEXT,
                          reply_markup=settings_kb)
 
 

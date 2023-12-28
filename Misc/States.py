@@ -1,18 +1,21 @@
 from aiogram.fsm.state import StatesGroup, State
 
 
-class RegisterUser(StatesGroup):
-    NAME = State()
+class AddUser(StatesGroup):
+    USERNAME: str = State()
 
 
-class SupportRequest(StatesGroup):
-    MESSAGE = State()
+class Support(StatesGroup):
+    MESSAGE: str = State()
 
 
-class GetHW(StatesGroup):
+class ViewHW(StatesGroup):
+    WEEK: int = State()
+
+
+class UploadHW(StatesGroup):
     WEEK = State()
-
-
-class AddHW(StatesGroup):
-    ASSIGNMENT = State()
-    IMAGE = State()
+    DAY = State()
+    SUBJECT = State()
+    ASSIGNMENT: str = State()
+    IMAGE: str = State()

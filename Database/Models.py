@@ -37,6 +37,7 @@ class HomeworkWeek1(Base):
     __tablename__ = "homeworkweek1"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    week_id: Mapped[int] = mapped_column()
     day_id: Mapped[int] = mapped_column(ForeignKey("days.id"), nullable=False)
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"), nullable=False)
     assignment: Mapped[str] = mapped_column(Text, nullable=False)
@@ -47,6 +48,7 @@ class HomeworkWeek2(Base):
     __tablename__ = "homeworkweek2"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    week_id: Mapped[int] = mapped_column(nullable=False)
     day_id: Mapped[int] = mapped_column(ForeignKey("days.id"), nullable=False)
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"), nullable=False)
     assignment: Mapped[str] = mapped_column(Text, nullable=False)

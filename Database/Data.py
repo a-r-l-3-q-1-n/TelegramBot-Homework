@@ -1,7 +1,7 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, select, update, and_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
@@ -16,7 +16,7 @@ class Database:
     def __init__(self):
 
         # Session
-        self.engine = create_async_engine(url=DATABASE_URL, echo=True)
+        self.engine = create_async_engine(url=DATABASE_URL, echo=False)
         self.async_session = async_sessionmaker(self.engine, expire_on_commit=False)
 
         # Schedule
@@ -88,6 +88,7 @@ class Database:
                 if not homeworkweek1_exists.first():
                     homeworkweek1_data = [
                         HomeworkWeek1(
+                            week_id=1,
                             day_id=_[0],
                             subject_id=_[1],
                             assignment="No assignment",
@@ -100,6 +101,7 @@ class Database:
                 if not homeworkweek2_exists.first():
                     homeworkweek2_data = [
                         HomeworkWeek2(
+                            week_id=2,
                             day_id=_[0],
                             subject_id=_[1],
                             assignment="No assignment",
@@ -181,7 +183,6 @@ class Database:
 
     async def add_homework(
             self,
-            telegram_id: int,
             week_id: int,
             day_id: int,
             subject_id: int,
@@ -196,45 +197,55 @@ class Database:
                 session.add(query)
                 await session.commit()
 
-            logger.log_info(f"{f'Homework added successfully ({day_id}.{subject_id}) {telegram_id}'.ljust(46)} ::")
+            logger.log_info(f"{f'Homework added successfully ({week_id}{day_id}.{subject_id})'.ljust(46)} ::")
         except SQLAlchemyError as exception:
-            logger.log_error(f"{f'Failed to add homework {telegram_id}'.ljust(46)} :: {exception}")
+            logger.log_error(f"{f'Failed to add homework '.ljust(46)} :: {exception}")
 
-    async def get_homework(self, telegram_id: int) -> list:
+    async def get_homework(
+            self,
+            week_id: int,
+            day_id: int
+    ) -> list:
         try:
-            async with self.async_session as session:
+            async with self.async_session() as session:
+                week = HomeworkWeek1 if week_id == 1 else HomeworkWeek2
+
                 query = await session.execute(
                     select(
+                        week.week_id,
                         Day.day,
                         Subject.subject,
-                        HomeworkWeek1.assignment,
-                        HomeworkWeek1.image,
+                        week.assignment,
+                        week.image,
                     )
-                    .union_all(
-                        select(
-                            Day.day,
-                            Subject.subject,
-                            HomeworkWeek2.assignment,
-                            HomeworkWeek2.image,
-                        )
-                        .join(Day, HomeworkWeek2.day_id == Day.id)
-                        .join(Subject, HomeworkWeek2.subject_id == Subject.id)
-                    ))
+                    .join(Day, and_(week.day_id == Day.id, Day.id == day_id))
+                    .join(Subject, week.subject_id == Subject.id)
+                )
+                query = query.fetchall()
 
                 data = [
                     {
+                        "week": week,
                         "day": day,
                         "subject": subject,
                         "assignment": assignment,
                         "image": image
-                    } for day, subject, assignment, image in query.all()
+                    } for week, day, subject, assignment, image in query
                 ]
+
+                # # printing data
+                # formatted_data = '\n'.join([str(item) for item in data])
+                # print(formatted_data)
+                #
+                # # printing subjects
+                # subjects_list = [subject[2] for subject in query]
+                # print(subjects_list)
 
                 logger.log_info(f"{f'Homework retrieved successfully'.ljust(46)} ::")
                 return data
 
         except SQLAlchemyError as exception:
-            logger.log_error(f"{f'Failed to retrieve homework {telegram_id}'.ljust(46)} :: {exception}")
+            logger.log_error(f"{f'Failed to retrieve homework'.ljust(46)} :: {exception}")
 
     # --> SCHEDULED METHOD
 
