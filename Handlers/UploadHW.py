@@ -10,11 +10,11 @@ from Keyboards.Pagination import PaginationUploadHW, paginator
 router = Router()
 
 days = [
-    ["Monday 🌤️   "],
-    ["Tuesday 🌟  "],
-    ["Wednesday 🍃"],
-    ["Thursday ☁️ "],
-    ["Friday 🥳   "]
+    ["Monday   "],
+    ["Tuesday  "],
+    ["Wednesday"],
+    ["Thursday "],
+    ["Friday   "]
 ]
 
 
